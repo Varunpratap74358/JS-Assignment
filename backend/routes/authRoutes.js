@@ -15,7 +15,7 @@ const generateToken = (res, userId) => {
     res.cookie('jwt', token, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: 'lax', // Lax is usually safer for local dev
+        sameSite: isProduction ? 'none' : 'lax', 
         path: '/',
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
