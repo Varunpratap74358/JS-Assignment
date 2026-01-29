@@ -5,6 +5,7 @@ import {
     addProjectRest, updateProjectRest, deleteProjectRest,
     addWorkRest, updateWorkRest, deleteWorkRest
 } from '../api/restClient';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const ManagePortfolio: React.FC = () => {
     const { } = useAuth();
@@ -14,6 +15,13 @@ const ManagePortfolio: React.FC = () => {
     const [modalType, setModalType] = useState<'project' | 'work' | null>(null);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [formData, setFormData] = useState<any>({});
+
+    // Delete Modal State
+    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; type: 'project' | 'work' | null; id: string | null }>({
+        isOpen: false,
+        type: null,
+        id: null
+    });
 
     const fetchProfile = async () => {
         try {
@@ -54,7 +62,8 @@ const ManagePortfolio: React.FC = () => {
                 skillsUsed: typeof formData.skillsUsed === 'string' ? formData.skillsUsed.split(',').map((s: string) => s.trim()).filter((s: string) => s) : formData.skillsUsed,
                 links: typeof formData.links === 'string' ? formData.links.split(',').map((s: string) => s.trim()).filter((s: string) => s) : formData.links
             };
-            if (editingItem) await updateProjectRest(editingItem.id, payload);
+            const id = editingItem?.id || editingItem?._id;
+            if (editingItem) await updateProjectRest(id, payload);
             else await addProjectRest(payload);
             fetchProfile();
             closeModal();
@@ -66,7 +75,8 @@ const ManagePortfolio: React.FC = () => {
     const handleWorkSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            if (editingItem) await updateWorkRest(editingItem.id, formData);
+            const id = editingItem?.id || editingItem?._id;
+            if (editingItem) await updateWorkRest(id, formData);
             else await addWorkRest(formData);
             fetchProfile();
             closeModal();
@@ -75,12 +85,17 @@ const ManagePortfolio: React.FC = () => {
         }
     };
 
-    const handleDelete = async (type: 'project' | 'work', id: string) => {
-        if (!window.confirm('Are you sure?')) return;
+    const openDeleteModal = (type: 'project' | 'work', id: string) => {
+        setDeleteModal({ isOpen: true, type, id });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteModal.id || !deleteModal.type) return;
         try {
-            if (type === 'project') await deleteProjectRest(id);
-            else await deleteWorkRest(id);
+            if (deleteModal.type === 'project') await deleteProjectRest(deleteModal.id);
+            else await deleteWorkRest(deleteModal.id);
             fetchProfile();
+            setDeleteModal({ isOpen: false, type: null, id: null });
         } catch (err) {
             alert('Delete failed');
         }
@@ -126,15 +141,15 @@ const ManagePortfolio: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {profile?.projects.map((p: any) => (
-                            <div key={p.id} className="group bg-white border border-gray-100 p-8 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-brand/5 transition-all flex flex-col relative border-b-4 hover:border-b-brand">
+                            <div key={p.id || p._id} className="group bg-white border border-gray-100 p-8 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:shadow-brand/5 transition-all flex flex-col relative border-b-4 hover:border-b-brand">
                                 <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
                                     <button onClick={() => openModal('project', p)} className="p-2.5 bg-white shadow-md rounded-xl text-gray-500 hover:text-brand hover:scale-110 transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
-                                    <button onClick={() => handleDelete('project', p.id)} className="p-2.5 bg-white shadow-md rounded-xl text-gray-500 hover:text-red-500 hover:scale-110 transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                    <button onClick={() => openDeleteModal('project', p.id || p._id)} className="p-2.5 bg-white shadow-md rounded-xl text-gray-500 hover:text-red-500 hover:scale-110 transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                 </div>
                                 <h4 className="text-xl font-extrabold text-gray-800 mb-3 group-hover:text-brand transition-colors">{p.title}</h4>
                                 <p className="text-gray-500 text-sm leading-relaxed mb-6 line-clamp-3">{p.description}</p>
                                 <div className="flex flex-wrap gap-2 mt-auto">
-                                    {p.skillsUsed.slice(0, 4).map((s: string, i: number) => (
+                                    {(p.skillsUsed || []).slice(0, 4).map((s: string, i: number) => (
                                         <span key={i} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 bg-gray-50 text-gray-400 rounded-lg group-hover:bg-brand/5 group-hover:text-brand transition-colors">{s}</span>
                                     ))}
                                 </div>
@@ -156,12 +171,12 @@ const ManagePortfolio: React.FC = () => {
                     </button>
                 </div>
                 <div className="space-y-4">
-                    { profile?.work.length === 0 ? (
-                         <div className="bg-gray-50 border-2 border-dashed border-gray-200 p-20 text-center rounded-[3rem]">
+                    {profile?.work.length === 0 ? (
+                        <div className="bg-gray-50 border-2 border-dashed border-gray-200 p-20 text-center rounded-[3rem]">
                             <p className="text-gray-400 font-medium italic">No work history found.</p>
                         </div>
                     ) : profile?.work.map((w: any) => (
-                        <div key={w.id} className="group bg-white border border-gray-100 p-8 rounded-[2rem] flex items-center justify-between hover:shadow-xl hover:shadow-indigo-500/5 transition-all border-l-4 border-l-transparent hover:border-l-indigo-500">
+                        <div key={w.id || w._id} className="group bg-white border border-gray-100 p-8 rounded-[2rem] flex items-center justify-between hover:shadow-xl hover:shadow-indigo-500/5 transition-all border-l-4 border-l-transparent hover:border-l-indigo-500">
                             <div className="flex items-center gap-8">
                                 <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 font-bold text-2xl group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all uppercase">
                                     {w.company[0]}
@@ -173,7 +188,7 @@ const ManagePortfolio: React.FC = () => {
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={() => openModal('work', w)} className="w-11 h-11 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-indigo-600 rounded-xl transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.242 19.242L19.242 16.242" /></svg></button>
-                                <button onClick={() => handleDelete('work', w.id)} className="w-11 h-11 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                <button onClick={() => openDeleteModal('work', w.id || w._id)} className="w-11 h-11 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition-all"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                             </div>
                         </div>
                     ))}
@@ -224,6 +239,18 @@ const ManagePortfolio: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Custom Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                title={`Delete ${deleteModal.type === 'project' ? 'Project' : 'Experience'}?`}
+                message={`Are you sure you want to remove this ${deleteModal.type === 'project' ? 'project' : 'work entry'}? This action cannot be undone.`}
+                confirmText="Yes, Delete"
+                cancelText="Cancel"
+                isDanger={true}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteModal({ isOpen: false, type: null, id: null })}
+            />
         </div>
     );
 };

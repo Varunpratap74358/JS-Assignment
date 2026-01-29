@@ -84,7 +84,6 @@ A high-fidelity, production-ready MERN stack application designed to manage and 
    # Clean & Seed 10+ professional results
    node seed.js
    # Fix/Clean old indexes
-   node fix-indexes.js
    ```
 
 4. **Launch**:

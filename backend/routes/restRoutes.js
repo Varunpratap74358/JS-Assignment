@@ -179,7 +179,13 @@ router.get('/projects', async (req, res) => {
         const users = await User.find(query);
         let allProjects = [];
         users.forEach(u => {
-            if (u.projects) allProjects.push(...u.projects);
+            if (u.projects) {
+                const userProjects = u.projects.map(p => ({
+                    ...p.toObject(),
+                    ownerId: u._id
+                }));
+                allProjects.push(...userProjects);
+            }
         });
 
         // Filter projects by skill if necessary
