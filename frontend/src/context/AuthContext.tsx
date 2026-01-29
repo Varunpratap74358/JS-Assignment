@@ -24,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkAuth = async () => {
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch('http://localhost:5000/api/auth/me', {
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/me`, {
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token && { 'Authorization': `Bearer ${token}` })
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = () => {
         setUser(null);
         localStorage.removeItem('token');
-        fetch('http://localhost:5000/api/auth/logout', { method: 'POST', credentials: 'include' });
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
     };
 
     return (
